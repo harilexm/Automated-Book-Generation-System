@@ -52,7 +52,7 @@ def send_teams_message(message: str) -> bool:
 
     try:
         payload = {
-            "text": f"📚 **Book Generator** — {message}"
+            "text": f"**Book Generator** - {message}"
         }
         response = requests.post(
             config.TEAMS_WEBHOOK_URL,
@@ -83,7 +83,7 @@ def notify(book_id: str | None, event_type: str, message: str) -> None:
         event_type: Event type (e.g., 'outline_ready', 'chapter_waiting', etc.)
         message: Human-readable notification message
     """
-    print(f"\n  📢 [{event_type.upper()}] {message}")
+    print(f"\n  [NOTIFY] [{event_type.upper()}] {message}")
 
     # Try Email
     email_sent = send_email(event_type.replace("_", " ").title(), message)
