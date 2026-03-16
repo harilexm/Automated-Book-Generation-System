@@ -28,7 +28,7 @@ def run_compile_stage(book_id: str) -> dict:
       - message: human-readable status
     """
     print(f"\n{'='*60}")
-    print(f"  📚 FINAL COMPILATION STAGE — Book: {book_id}")
+    print(f"  [COMPILE STAGE] Book: {book_id}")
     print(f"{'='*60}")
 
     # Fetch book
@@ -42,9 +42,9 @@ def run_compile_stage(book_id: str) -> dict:
 
     # GATE: Check final_review_notes_status
     if final_status == "no_notes_needed":
-        print(f"  ✅ final_review_notes_status = 'no_notes_needed' → Proceeding.")
+        print(f"  [OK] final_review_notes_status = 'no_notes_needed' -> Proceeding.")
     elif final_status == "yes" and final_notes:
-        print(f"  ✅ Final review notes provided. Proceeding with notes.")
+        print(f"  [OK] Final review notes provided. Proceeding with notes.")
     elif final_status == "yes" and not final_notes:
         msg = (
             f"final_review_notes_status = 'yes' but no notes found.\n"
@@ -57,7 +57,7 @@ def run_compile_stage(book_id: str) -> dict:
         }
     else:
         msg = (
-            f"final_review_notes_status = '{final_status}' → Pausing.\n"
+            f"final_review_notes_status = '{final_status}' -> Pausing.\n"
             f"Set to 'no_notes_needed' to compile, or 'yes' to add final notes."
         )
         notifications.notify(book_id, "compile_paused", msg)
@@ -86,17 +86,17 @@ def run_compile_stage(book_id: str) -> dict:
     # Generate .docx
     docx_path = os.path.join(output_dir, f"{safe_title}.docx")
     _generate_docx(title, chapters, docx_path, final_notes)
-    print(f"  ✅ DOCX created: {docx_path}")
+    print(f"  [OK] DOCX created: {docx_path}")
 
     # Generate .txt
     txt_path = os.path.join(output_dir, f"{safe_title}.txt")
     _generate_txt(title, chapters, txt_path)
-    print(f"  ✅ TXT created: {txt_path}")
+    print(f"  [OK] TXT created: {txt_path}")
 
     # Upload to Supabase Storage
     try:
         _upload_to_storage(book_id, docx_path, safe_title)
-        print(f"  ✅ Uploaded to Supabase Storage.")
+        print(f"  [OK] Uploaded to Supabase Storage.")
     except Exception as e:
         print(f"  [WARNING] Failed to upload to storage: {e}")
 
@@ -105,7 +105,7 @@ def run_compile_stage(book_id: str) -> dict:
 
     # Notify
     msg = (
-        f"📚 Book '{title}' has been compiled!\n"
+        f"Book '{title}' has been compiled!\n"
         f"DOCX: {docx_path}\n"
         f"TXT: {txt_path}\n"
         f"Chapters: {len(chapters)}"
@@ -206,9 +206,9 @@ def _generate_txt(title: str, chapters: list[dict], filepath: str) -> None:
 
         # Chapters
         for ch in chapters:
-            f.write(f"\n{'─'*60}\n")
+            f.write(f"\n{'-'*60}\n")
             f.write(f"CHAPTER {ch['chapter_number']}: {ch['title'].upper()}\n")
-            f.write(f"{'─'*60}\n\n")
+            f.write(f"{'-'*60}\n\n")
             f.write(ch.get("content", "") + "\n")
 
         f.write(f"\n{'='*60}\n")
