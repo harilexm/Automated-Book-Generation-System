@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS chapters (
     content                 TEXT,                         -- Full chapter text
     summary                 TEXT,                         -- LLM-generated summary for context chaining
     chapter_notes           TEXT,                         -- Editor notes for this chapter
-    chapter_notes_status    TEXT DEFAULT 'no',            -- yes / no / no_notes_needed
+    chapter_notes_status    TEXT DEFAULT 'no_notes_needed', -- yes / no / no_notes_needed
     status                  TEXT DEFAULT 'pending',       -- pending / generated / approved
     created_at              TIMESTAMPTZ DEFAULT NOW(),
     updated_at              TIMESTAMPTZ DEFAULT NOW()
