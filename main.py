@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 def main():
     parser = argparse.ArgumentParser(
-        description="📚 Automated Book Generation System",
+        description="Automated Book Generation System",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
                 Examples:
@@ -26,6 +26,8 @@ def main():
     parser.add_argument("--book-id", type=str, help="Book ID (UUID) for stage-specific runs")
     parser.add_argument("--list", action="store_true", help="List all books in database")
     parser.add_argument("--create-sample", action="store_true", help="Create a sample input Excel file")
+    parser.add_argument("--delete", type=str, metavar="BOOK_ID", help="Delete a book by ID (also deletes its chapters)")
+    parser.add_argument("--delete-all", action="store_true", help="Delete ALL books from database")
 
     args = parser.parse_args()
 
@@ -33,6 +35,35 @@ def main():
     if args.create_sample:
         from input_handler import create_sample_input
         create_sample_input("input/books_input.xlsx")
+        return
+
+    # Delete a single book
+    if args.delete:
+        import db
+        book = db.get_book(args.delete)
+        if not book:
+            print(f"[ERROR] Book not found: {args.delete}")
+            return
+        title = book["title"]
+        db.delete_book(args.delete)
+        print(f"  [DELETED] '{title}' ({args.delete})")
+        return
+
+    # Delete all books
+    if args.delete_all:
+        import db
+        books = db.get_all_books()
+        if not books:
+            print("  No books to delete.")
+            return
+        confirm = input(f"  Are you sure you want to delete ALL {len(books)} books? (yes/no): ")
+        if confirm.lower() != "yes":
+            print("  Cancelled.")
+            return
+        for b in books:
+            db.delete_book(b["id"])
+            print(f"  [DELETED] '{b['title']}' ({b['id']})")
+        print(f"\n  Deleted {len(books)} book(s).")
         return
 
     # List books
@@ -43,15 +74,15 @@ def main():
             print("\n  No books found in database.")
             return
 
-        print(f"\n  📚 Books in Database ({len(books)}):")
-        print(f"  {'─'*70}")
+        print(f"\n  Books in Database ({len(books)}):")
+        print(f"  {'-'*70}")
         for b in books:
             status = b.get('book_output_status', 'unknown')
             print(f"  ID: {b['id']}")
             print(f"     Title:  {b['title']}")
             print(f"     Status: {status}")
             print(f"     Created: {b['created_at']}")
-            print(f"  {'─'*70}")
+            print(f"  {'-'*70}")
         return
 
     # Run specific stage
@@ -88,12 +119,12 @@ def _run_stage(stage: str, book_id: str) -> dict:
 def _run_full_pipeline(input_path: str):
     """Run the complete pipeline: input → outline → chapters → compile."""
     print("\n" + "=" * 60)
-    print("  📚 AUTOMATED BOOK GENERATION SYSTEM")
+    print("  AUTOMATED BOOK GENERATION SYSTEM")
     print("  Full Pipeline Run")
     print("=" * 60)
 
     # Step 1: Read input
-    print("\n\n▶ STEP 1: Reading input file...")
+    print("\n\n>> STEP 1: Reading input file...")
     from input_handler import read_input
     books = read_input(input_path)
 
@@ -105,43 +136,39 @@ def _run_full_pipeline(input_path: str):
     for book in books:
         book_id = book["id"]
         title = book["title"]
-        print(f"\n\n{'╔'*60}")
+        print(f"\n\n{'='*60}")
         print(f"  Processing: {title}")
         print(f"  Book ID: {book_id}")
-        print(f"{'╚'*60}")
+        print(f"{'='*60}")
 
         # Step 2: Outline stage
-        print("\n\n▶ STEP 2: Outline Generation...")
+        print("\n\n>> STEP 2: Outline Generation...")
         from outline_stage import run_outline_stage
         result = run_outline_stage(book_id)
         print(f"\n  Result: {result['status']}")
         print(f"  Message: {result['message']}")
 
         if result["status"] != "completed":
-            print(f"\n  ⏸️  Pipeline paused at OUTLINE stage.")
+            print(f"\n  [PAUSED] Pipeline paused at OUTLINE stage.")
             print(f"     Fix the issue in Supabase, then re-run:")
             print(f"     python main.py --stage outline --book-id {book_id}")
             continue
 
         # Step 3: Chapter generation
-        print("\n\n▶ STEP 3: Chapter Generation...")
+        print("\n\n>> STEP 3: Chapter Generation...")
         from chapter_stage import run_chapter_stage
         result = run_chapter_stage(book_id)
         print(f"\n  Result: {result['status']}")
         print(f"  Message: {result['message']}")
 
         if result["status"] != "completed":
-            print(f"\n  ⏸️  Pipeline paused at CHAPTER stage.")
+            print(f"\n  [PAUSED] Pipeline paused at CHAPTER stage.")
             print(f"     Fix the issue in Supabase, then re-run:")
             print(f"     python main.py --stage chapters --book-id {book_id}")
             continue
 
         # Step 4: Compile
-        print("\n\n▶ STEP 4: Final Compilation...")
-
-        # Auto-set final_review to no_notes_needed for full pipeline
-        import db
-        db.update_book(book_id, {"final_review_notes_status": "no_notes_needed"})
+        print("\n\n>> STEP 4: Final Compilation...")
 
         from compile_stage import run_compile_stage
         result = run_compile_stage(book_id)
@@ -149,15 +176,15 @@ def _run_full_pipeline(input_path: str):
         print(f"  Message: {result['message']}")
 
         if result["status"] == "completed":
-            print(f"\n  🎉 Book '{title}' is complete!")
+            print(f"\n  [DONE] Book '{title}' is complete!")
             print(f"     DOCX: {result.get('docx_path', 'N/A')}")
             print(f"     TXT:  {result.get('txt_path', 'N/A')}")
         else:
-            print(f"\n  ⏸️  Pipeline paused at COMPILE stage.")
+            print(f"\n  [PAUSED] Pipeline paused at COMPILE stage.")
             print(f"     python main.py --stage compile --book-id {book_id}")
 
     print("\n\n" + "=" * 60)
-    print("  📚 PIPELINE COMPLETE")
+    print("  PIPELINE COMPLETE")
     print("=" * 60)
 
 
