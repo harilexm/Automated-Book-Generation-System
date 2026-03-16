@@ -40,6 +40,10 @@ def get_all_books() -> list[dict]:
     result = get_client().table("books").select("*").order("created_at", desc=True).execute()
     return result.data
 
+def delete_book(book_id: str) -> None:
+    """Delete a book and all its chapters (CASCADE)."""
+    get_client().table("books").delete().eq("id", book_id).execute()
+
 # CHAPTERS CRUD
 def create_chapter(book_id: str, chapter_number: int, title: str) -> dict:
     """Insert a new chapter record."""
@@ -47,6 +51,7 @@ def create_chapter(book_id: str, chapter_number: int, title: str) -> dict:
         "book_id": book_id,
         "chapter_number": chapter_number,
         "title": title,
+        "chapter_notes_status": "no_notes_needed",
     }
     result = get_client().table("chapters").insert(data).execute()
     return result.data[0]
