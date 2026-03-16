@@ -28,7 +28,7 @@ def run_outline_stage(book_id: str) -> dict:
       - message: human-readable status
     """
     print(f"\n{'='*60}")
-    print(f"  📋 OUTLINE STAGE — Book: {book_id}")
+    print(f"  [OUTLINE STAGE] Book: {book_id}")
     print(f"{'='*60}")
 
     # Fetch book
@@ -52,14 +52,22 @@ def run_outline_stage(book_id: str) -> dict:
         }
 
     # Generate or regenerate outline
-    outline = llm_service.generate_outline(title, notes_before, notes_after)
+    existing_outline = book.get("outline")
 
-    # Save outline to DB
-    db.update_book(book_id, {
-        "outline": outline,
-        "book_output_status": "outline_done",
-    })
-    print(f"\n  ✅ Outline generated and saved for '{title}'")
+    if existing_outline and not notes_after:
+        # Outline already exists and no new notes — skip regeneration
+        print(f"  [OK] Outline already exists for '{title}'. Skipping regeneration.")
+        outline = existing_outline
+    else:
+        # Generate new outline (or regenerate with notes_after)
+        outline = llm_service.generate_outline(title, notes_before, notes_after)
+
+        # Save outline to DB
+        db.update_book(book_id, {
+            "outline": outline,
+            "book_output_status": "outline_done",
+        })
+        print(f"\n  [OK] Outline generated and saved for '{title}'")
 
     # Notify: outline ready
     notifications.notify(
@@ -77,7 +85,7 @@ def run_outline_stage(book_id: str) -> dict:
     status_notes = book.get("status_outline_notes", "no")
 
     if status_notes == "no_notes_needed":
-        print(f"  ➡️  status_outline_notes = 'no_notes_needed' → Proceeding to chapters.")
+        print(f"  [>>] status_outline_notes = 'no_notes_needed' -> Proceeding to chapters.")
         return {
             "status": "completed",
             "outline": outline,
@@ -88,7 +96,7 @@ def run_outline_stage(book_id: str) -> dict:
         # Check if notes_after already exist (maybe editor already filled them)
         notes_after = book.get("notes_on_outline_after")
         if notes_after:
-            print(f"  🔄 Found notes_on_outline_after. Regenerating outline...")
+            print(f"  [REGEN] Found notes_on_outline_after. Regenerating outline...")
             # Regenerate with the notes
             outline = llm_service.generate_outline(title, notes_before, notes_after)
             db.update_book(book_id, {
@@ -122,7 +130,7 @@ def run_outline_stage(book_id: str) -> dict:
     else:
         # status is "no" or empty → pause
         msg = (
-            f"status_outline_notes = '{status_notes}' → Pausing.\n"
+            f"status_outline_notes = '{status_notes}' -> Pausing.\n"
             f"Set 'status_outline_notes' to 'no_notes_needed' to proceed,\n"
             f"or 'yes' to provide notes."
         )
