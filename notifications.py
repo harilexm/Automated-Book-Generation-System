@@ -1,5 +1,5 @@
 """
-notifications.py — Email (SMTP) + MS Teams Webhook notifications.
+Email (SMTP) + MS Teams Webhook notifications.
 
 Sends notifications on key events and logs them to Supabase.
 Gracefully falls back to console output if channels are not configured.
