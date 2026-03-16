@@ -59,7 +59,7 @@ def run_chapter_stage(book_id: str) -> dict:
       - message: human-readable status
     """
     print(f"\n{'='*60}")
-    print(f"  📖 CHAPTER GENERATION STAGE — Book: {book_id}")
+    print(f"  [CHAPTER STAGE] Book: {book_id}")
     print(f"{'='*60}")
 
     # Fetch book
@@ -91,15 +91,15 @@ def run_chapter_stage(book_id: str) -> dict:
 
     # Generate each chapter
     for idx, chapter_title in enumerate(chapter_titles, 1):
-        print(f"\n{'─'*50}")
-        print(f"  📝 Chapter {idx}/{len(chapter_titles)}: {chapter_title}")
-        print(f"{'─'*50}")
+        print(f"\n{'-'*50}")
+        print(f"  [WRITING] Chapter {idx}/{len(chapter_titles)}: {chapter_title}")
+        print(f"{'-'*50}")
 
         # Skip already generated chapters
         if idx in existing_nums:
             ch = next(c for c in existing_chapters if c["chapter_number"] == idx)
             if ch.get("content") and ch.get("status") in ("generated", "approved"):
-                print(f"  ⏭️  Chapter {idx} already generated. Skipping.")
+                print(f"  [SKIP] Chapter {idx} already generated. Skipping.")
                 continue
 
         # Gather summaries of all previous chapters for context
@@ -145,18 +145,20 @@ def run_chapter_stage(book_id: str) -> dict:
             })
 
         chapters_generated += 1
-        print(f"  ✅ Chapter {idx} generated ({len(content)} chars)")
+        print(f"  [OK] Chapter {idx} generated ({len(content)} chars)")
         print(f"     Summary: {summary[:100]}...")
 
-        # GATE: Check chapter_notes_status
-        # Re-fetch the book for the latest status
-        book = db.get_book(book_id)
-        chapter_notes_status = book.get("chapter_notes_status", "no_notes_needed")
+        # GATE: Check chapter_notes_status (per-chapter, from chapters table)
+        all_chapters_updated = db.get_chapters(book_id)
+        current_ch = next(
+            (c for c in all_chapters_updated if c["chapter_number"] == idx), None
+        )
+        chapter_notes_status = current_ch.get("chapter_notes_status", "no_notes_needed") if current_ch else "no_notes_needed"
 
         if chapter_notes_status == "yes":
             msg = (
                 f"Chapter {idx}: '{chapter_title}' generated.\n"
-                f"chapter_notes_status = 'yes' → Pausing for review.\n"
+                f"chapter_notes_status = 'yes' -> Pausing for review.\n"
                 f"Add notes to the chapter in the chapters table,\n"
                 f"then set chapter_notes_status to 'no_notes_needed' and re-run."
             )
